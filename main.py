@@ -70,13 +70,13 @@ if __name__=="__main__":
     
     lista=[]
     for i in range(N):
-        lista.append(filosofo(ventana)) #Añade un filosofo
+        lista.append(filosofo(ventana)) 
 
     for f in lista:
-        f.start()   #equivalente a run
+        f.start()   
     
     ventana.run()
 
     for f in lista:
-        f.join() #BLOQUEA HASTA QUE TERMINA EL THREAD
+        f.join() 
 
