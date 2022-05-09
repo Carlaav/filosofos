@@ -1,81 +1,77 @@
-import tkinter as tk
-from filosofos_beta import *
+import time
+import random
+import threading
+from main import GUI
+from tkinter import END
 
+N = 5
+TIEMPO_TOTAL = 3
 
+class filosofo(threading.Thread):
+    semaforo = threading.Lock() 
+    estado = [] 
+    tenedores = [] 
+    
+    count=0
 
-class GUI():
-    def __init__(self):
-        self.window= tk.Tk()
-        self.window.title("Que pasa")
+    def __init__(self, ventana):
+        super().__init__()     
+        self.ventana=ventana
+        self.id=filosofo.count 
+        filosofo.count+=1 
+        self.veces= 0
+        filosofo.estado.append('PENSANDO') 
+        filosofo.tenedores.append(threading.Semaphore(0))
+        self.ventana.logs("FILOSOFO {0} - PENSANDO".format(self.id))
 
-        self.texto=tk.Text(self.window, height=30,width=80)
-        self.scroll= tk.Scrollbar(self.window)
+    def __del__(self):
+        self.ventana.logs("FILOSOFO {0} - Se para de la mesa".format(self.id))  
 
-        self.veces_comidas=[]
-        self.estado_filosofos= []
-        self.estado_tenedores= []
+    def pensar(self):
+        time.sleep(random.randint(0,5)) 
 
-        self.info()
+    def derecha(self,i):
+        return (i-1)%N 
+
+    def izquierda(self,i):
+        return(i+1)%N 
+    def verificar(self,i):
+        if filosofo.estado[i] == 'HAMBRIENTO' and filosofo.estado[self.izquierda(i)] != 'COMIENDO' and filosofo.estado[self.derecha(i)] != 'COMIENDO':
+            filosofo.estado[i]='COMIENDO'
+            filosofo.tenedores[i].release()  
+    def tomar(self):
+        filosofo.semaforo.acquire() 
+        filosofo.estado[self.id] = 'HAMBRIENTO'
+        self.verificar(self.id) 
+        filosofo.semaforo.release() 
+        filosofo.tenedores[self.id].acquire() 
+
+    def soltar(self):
+        filosofo.semaforo.acquire() 
+        filosofo.estado[self.id] = 'PENSANDO'
+        self.ventana.estado_filosofos[self.id].config(bg= "white")
+        self.verificar(self.izquierda(self.id))
+        self.verificar(self.derecha(self.id))
+        filosofo.semaforo.release() 
+
+    def comer(self):
         
-        self.texto.configure(yscrollcommand= self.scroll.set)
-        self.texto.pack(side= tk.LEFT)
-        self.scroll.config(command= self.texto.yview)
-        self.scroll.pack(side= tk.RIGHT,fill= tk.Y)
-
+        self.ventana.logs("FILOSOFO {} COMIENDO".format(self.id))
+        self.ventana.estado_filosofos[self.id].config(bg= "yellow")
+        self.ventana.estado_tenedores[self.id].config(bg= "green")
+        self.ventana.estado_tenedores[(self.id+1)%N].config(bg= "green")
+        time.sleep(2) #TIEMPO ARBITRARIO PARA COMER
+        self.ventana.logs("FILOSOFO {} TERMINO DE COMER".format(self.id))
+        self.ventana.estado_tenedores[self.id].config(bg= "grey")
+        self.ventana.estado_tenedores[(self.id+1)%N].config(bg= "grey")
+        self.veces+=1
+        self.ventana.veces_comidas[self.id].delete(0, END)
+        self.ventana.veces_comidas[self.id].insert(0, self.veces)
         
-
-        
-
-        
-    def info(self):        
-        for i in range(N):
-          entry = tk.Entry(self.window)
-          entry.place(x=450, y=50+i*20)
-          self.veces_comidas.append(entry)
-
-          filosofos= tk.Label(self.window, text= "Filósofo " + str(i) + ":",bg="white")
-          filosofos.place(x=350, y=50+i*20)
-
-          tenedores= tk.Label(self.window, text= "Tenedor " + str(i),bg="grey")
-          tenedores.place(x=350, y=200+i*20)
-
-          
-          self.estado_filosofos.append(filosofos)
-          self.estado_tenedores.append(tenedores)
-          
-        tk.Label(self.window, text= "¿Cuántas veces han comido?").place(x=450, y= 20)
-
-        tk.Canvas(self.window, width= 200, height=110, bg="grey").place(x = 400, y = 350)
-
-        tk.Label(self.window, text="Comiendo", bg="White").place(x =430, y = 353)
-        tk.Label(self.window, text="Pensando", bg="White").place(x =430, y = 380)
-
-        tk.Label(self.window, text="Tenedor cogido", bg="White").place(x =430, y = 410)
-        tk.Label(self.window, text="Tenedor libre", bg="White").place(x =430, y = 440)
-
-        tk.Canvas(self.window, width= 10, height=10, bg="yellow").place(x = 410, y = 355)
-        tk.Canvas(self.window, width= 10, height=10, bg="white").place(x = 410, y = 385)
-        tk.Canvas(self.window, width= 10, height=10, bg="green").place(x = 410, y = 415)
-        tk.Canvas(self.window, width= 10, height=10, bg="grey").place(x = 410, y = 445)
-
-              
-    def logs(self,texto):
-        self.texto.insert(tk.END, str(texto)+"\n")
-
-    def run(self):
-      self.window.mainloop()
       
-if __name__=="__main__":
-    ventana= GUI()
-    
-    lista=[]
-    for i in range(N):
-        lista.append(filosofo(ventana)) #Añade un filosofo
-
-    for f in lista:
-        f.start()   #equivalente a run
-    
-    ventana.run()
-
-    for f in lista:
-        f.join() #BLOQUEA HASTA QUE TERMINA EL THREAD
+    def run(self):
+        for i in range(TIEMPO_TOTAL):
+            self.pensar() 
+            self.tomar() 
+            self.comer() 
+            self.soltar() 
