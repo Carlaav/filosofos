@@ -70,10 +70,10 @@ if __name__=="__main__":
     
     lista=[]
     for i in range(N):
-        lista.append(filosofo(ventana)) #AGREGA UN FILOSOFO A LA LISTA
+        lista.append(filosofo(ventana)) #Añade un filosofo
 
     for f in lista:
-        f.start() #ES EQUIVALENTE A RUN()
+        f.start()   #equivalente a run
     
     ventana.run()
 
